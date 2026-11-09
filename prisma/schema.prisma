@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Category {
+  ROADS
+  WATER
+  SANITATION
+  ELECTRICITY
+  SAFETY
+  TRANSPORT
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum InputSource {
+  VOICE
+  TEXT
+}
+
+enum ComplaintStatus {
+  NEW
+  LINKED
+  RESOLVED
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+/// A single citizen report (spoken, then transcribed).
+model Complaint {
+  id         String          @id @default(cuid())
+  transcript String
+  summary    String?
+  category   Category        @default(OTHER)
+  severity   Severity?
+  language   String?
+  address    String?
+  latitude   Float?
+  longitude  Float?
+  audioUrl   String? // unused: audio is not stored (privacy); reserved
+  durationText      String?
+  durationDays      Int?
+  previousComplaint Boolean?
+  severityReasons   String[]        @default([])
+  source            InputSource     @default(VOICE)
+  isDemo            Boolean         @default(false) // simulated demonstration data
+  status     ComplaintStatus @default(NEW)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  report     IncidentReport?
+
+  @@index([status, createdAt])
+  @@index([category])
+}
+
+/// A cluster of related complaints about the same civic problem.
+model Incident {
+  id        String         @id @default(cuid())
+  title     String
+  category  Category
+  severity  Severity       @default(MEDIUM)
+  status    IncidentStatus @default(OPEN)
+  address   String?
+  latitude  Float
+  longitude Float
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  reports   IncidentReport[]
+
+  // Community Signal aggregates (kept in sync by src/lib/clustering/assign.ts)
+  reportCount      Int      @default(0)
+  firstReportedAt  DateTime @default(now())
+  latestReportedAt DateTime @default(now())
+  severityReasons  String[] @default([])
+  isDemo           Boolean  @default(false) // simulated demonstration data
+
+  @@index([status, severity])
+  @@index([category, status, latestReportedAt])
+}
+
+/// Join table: links a complaint to the incident it belongs to.
+/// complaintId is unique, so a complaint belongs to at most one incident.
+model IncidentReport {
+  id          String    @id @default(cuid())
+  incidentId  String
+  complaintId String    @unique
+  distanceM   Int       @default(0)   // metres from incident centre when linked
+  textScore   Float     @default(0)   // text similarity (0-1) that justified the link
+  createdAt   DateTime  @default(now())
+  incident    Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+}
