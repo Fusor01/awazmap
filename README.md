@@ -33,7 +33,6 @@ npm run check                   # offline logic checks (no network)
 ```
 Routes: `/` · `/report` · `/report/[id]` · `/admin` · `/admin/complaints` · `/admin/incidents` · `/admin/map` · `/api/health`
 
-More: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · [docs/TEST_PLAN.md](docs/TEST_PLAN.md) · [docs/SUBMISSION.md](docs/SUBMISSION.md)
 
 ## Environment variables (server-side unless prefixed NEXT_PUBLIC_)
 `DATABASE_URL` `DIRECT_URL` `GNANI_API_KEY` `GROQ_API_KEY` `GROQ_MODEL` (optional) `HEALTH_TOKEN` (optional)
